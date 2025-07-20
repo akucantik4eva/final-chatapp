@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Performance Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            --border-color: #dadce0;
+            --background-color: #f0f2f5;
+            --card-background: #fff;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --blue-dark: #1967d2;
+            --chart-color-1: #4285F4;
+            --chart-color-2: #DB4437;
+            --chart-color-3: #F4B400;
+            --chart-color-4: #0F9D58;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 24px;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: auto;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .title { font-size: 24px; font-weight: 400; }
+        .title .subtitle { color: var(--text-secondary); }
+
+        .date-range {
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .tabs {
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-secondary);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-button.active {
+            color: var(--blue-dark);
+            border-bottom-color: var(--blue-dark);
+            font-weight: 500;
+        }
+        
+        .content-panel { display: none; }
+        .content-panel.active { display: block; }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .kpi-card .label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .kpi-card .value {
+            font-size: 32px;
+            font-weight: 500;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-card h2 {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0 0 16px 0;
+        }
+
+        .chart-container {
+            position: relative;
+            min-height: 300px;
+            flex-grow: 1;
+        }
+        
+        .data-table-section {
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        .data-table-section h2 {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0 0 16px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        thead th {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1 class="title">Performance Dashboard <span class="subtitle">· Overview</span></h1>
+            <div class="date-range"><span id="date-range-display"></span></div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" onclick="showTab('sa360')">Search Ads 360</button>
+            <button class="tab-button" onclick="showTab('dv360')">Display & Video 360</button>
+        </nav>
+
+        <div id="sa360" class="content-panel active">
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="label">Total Clicks</div><div class="value" id="kpi-total-clicks"></div></div>
+                <div class="kpi-card"><div class="label">Overall Conversion Rate</div><div class="value" id="kpi-conv-rate"></div></div>
+                <div class="kpi-card"><div class="label">Top Performing Brand</div><div class="value" id="kpi-top-brand"></div></div>
+                <div class="kpi-card"><div class="label">Top Country</div><div class="value" id="kpi-top-country"></div></div>
+            </div>
+            <div class="main-content">
+                <div class="chart-card">
+                    <h2>Funnel Analytics</h2>
+                    <div class="chart-container"><canvas id="funnel-chart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h2>Conversion Rate Trends</h2>
+                    <div class="chart-container"><canvas id="conversion-trends-chart"></canvas></div>
+                </div>
+            </div>
+             <div class="main-content">
+                <div class="chart-card">
+                    <h2>Geo Distribution (Clicks)</h2>
+                    <div class="chart-container"><canvas id="geo-chart"></canvas></div>
+                </div>
+                 <div class="data-table-section">
+                    <h2>Brand Performance</h2>
+                    <table>
+                        <thead><tr><th>Brand</th><th>Clicks</th><th>Conversions</th><th>Conversion Rate</th></tr></thead>
+                        <tbody id="brand-performance-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="dv360" class="content-panel">
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="label">Total Calls Handled</div><div class="value" id="kpi-total-calls"></div></div>
+                <div class="kpi-card"><div class="label">Avg. Response Time</div><div class="value" id="kpi-avg-response"></div></div>
+                <div class="kpi-card"><div class="label">First Call Resolution</div><div class="value" id="kpi-fcr"></div></div>
+                 <div class="kpi-card"><div class="label">Top Agent</div><div class="value" id="kpi-top-agent"></div></div>
+            </div>
+            <div class="main-content">
+                <div class="chart-card">
+                    <h2>CC Desk Performance (Daily)</h2>
+                    <div class="chart-container"><canvas id="cc-desk-chart"></canvas></div>
+                </div>
+                <div class="data-table-section">
+                    <h2>Agent Performance</h2>
+                    <table>
+                        <thead><tr><th>Agent Name</th><th>Calls Handled</th><th>Avg. Response (s)</th><th>Resolution Rate</th></tr></thead>
+                        <tbody id="agent-performance-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- UTILITY FUNCTIONS ---
+    const getRandom = (min, max, isFloat = false) => isFloat ? (Math.random() * (max - min) + min) : Math.floor(Math.random() * (max - min + 1) + min);
+    const formatNumber = (num) => num.toLocaleString('en-US');
+
+    // --- DATE SETUP ---
+    const endDate = new Date('2025-07-19T15:38:11');
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - 29);
+
+    document.getElementById('date-range-display').textContent = 
+        `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+    const dateLabels = Array.from({ length: 30 }, (_, i) => {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        return date;
+    });
+
+    // --- DATA RANDOMIZATION ---
+    const generateBrandData = () => {
+        const brands = ["Nike", "Adidas", "Puma", "Reebok", "Asics"];
+        return brands.map(brand => {
+            const clicks = getRandom(15000, 50000);
+            const conversions = getRandom(Math.floor(clicks * 0.02), Math.floor(clicks * 0.08));
+            return { brand, clicks, conversions };
+        }).sort((a, b) => b.clicks - a.clicks);
+    };
+
+    const generateGeoData = () => {
+        const countries = ["USA", "Germany", "UK", "Japan", "Australia", "Canada"];
+        return countries.map(country => ({
+            country,
+            clicks: getRandom(10000, 80000)
+        })).sort((a, b) => b.clicks - a.clicks);
+    };
+    
+    const generateFunnelData = () => {
+        const steps = ["Visitors", "Product Views", "Add to Cart", "Conversions"];
+        let count = getRandom(200000, 300000);
+        return steps.map(label => {
+            const currentCount = count;
+            count = Math.floor(count * getRandom(0.3, 0.7, true));
+            return { label, count: currentCount };
+        });
+    };
+    
+    const generateTrendData = (numPoints) => {
+        return Array.from({ length: numPoints }, () => getRandom(1.5, 7.5, true));
+    };
+
+    const generateCCAgentData = () => {
+        const agents = ["John D.", "Jane S.", "Mike R.", "Sarah K.", "Chris L."];
+        return agents.map(name => ({
+            name,
+            calls: getRandom(250, 500),
+            responseTime: getRandom(20, 90),
+            resolutionRate: getRandom(75, 98, true)
+        })).sort((a, b) => b.calls - a.calls);
+    };
+
+    // --- TAB SWITCHING ---
+    const showTab = (tabId) => {
+        document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+    };
+
+    // --- CHART & DATA RENDERING ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Generate all data
+        const brandData = generateBrandData();
+        const geoData = generateGeoData();
+        const funnelData = generateFunnelData();
+        const conversionTrendData = generateTrendData(30);
+        const agentData = generateCCAgentData();
+        const dailyCallsData = Array.from({ length: 30 }, () => getRandom(800, 1500));
+        const dailyResponseTimeData = Array.from({ length: 30 }, () => getRandom(30, 120));
+
+        // --- Populate Marketing KPIs & Tables ---
+        const totalClicks = brandData.reduce((sum, b) => sum + b.clicks, 0);
+        const totalConversions = brandData.reduce((sum, b) => sum + b.conversions, 0);
+        document.getElementById('kpi-total-clicks').textContent = formatNumber(totalClicks);
+        document.getElementById('kpi-conv-rate').textContent = `${((totalConversions / totalClicks) * 100).toFixed(2)}%`;
+        document.getElementById('kpi-top-brand').textContent = brandData[0].brand;
+        document.getElementById('kpi-top-country').textContent = geoData[0].country;
+
+        const brandTableBody = document.getElementById('brand-performance-table');
+        brandTableBody.innerHTML = brandData.map(b => `
+            <tr>
+                <td>${b.brand}</td>
+                <td>${formatNumber(b.clicks)}</td>
+                <td>${formatNumber(b.conversions)}</td>
+                <td>${((b.conversions / b.clicks) * 100).toFixed(2)}%</td>
+            </tr>
+        `).join('');
+        
+        // --- Populate Operations KPIs & Tables ---
+        const totalCalls = agentData.reduce((sum, a) => sum + a.calls, 0);
+        const avgResponse = agentData.reduce((sum, a) => sum + a.responseTime * a.calls, 0) / totalCalls;
+        const avgResolution = agentData.reduce((sum, a) => sum + a.resolutionRate * a.calls, 0) / totalCalls;
+        document.getElementById('kpi-total-calls').textContent = formatNumber(totalCalls);
+        document.getElementById('kpi-avg-response').textContent = `${avgResponse.toFixed(0)}s`;
+        document.getElementById('kpi-fcr').textContent = `${avgResolution.toFixed(1)}%`;
+        document.getElementById('kpi-top-agent').textContent = agentData[0].name;
+
+        const agentTableBody = document.getElementById('agent-performance-table');
+        agentTableBody.innerHTML = agentData.map(a => `
+             <tr>
+                <td>${a.name}</td>
+                <td>${formatNumber(a.calls)}</td>
+                <td>${a.responseTime}s</td>
+                <td>${a.resolutionRate.toFixed(1)}%</td>
+            </tr>
+        `).join('');
+
+        // --- Chart Configurations ---
+        const commonTimeScaleOptions = { scales: { x: { type: 'time', time: { unit: 'day', tooltipFormat: 'MMM d' } }, y: { beginAtZero: true } } };
+
+        // Funnel Chart
+        new Chart(document.getElementById('funnel-chart'), {
+            type: 'bar',
+            data: {
+                labels: funnelData.map(d => d.label),
+                datasets: [{
+                    label: 'Users',
+                    data: funnelData.map(d => d.count),
+                    backgroundColor: [ 'rgba(66, 133, 244, 0.7)', 'rgba(219, 68, 55, 0.7)', 'rgba(244, 180, 0, 0.7)', 'rgba(15, 157, 88, 0.7)' ]
+                }]
+            },
+            options: { indexAxis: 'y', plugins: { legend: { display: false } } }
+        });
+
+        // Conversion Trends Chart
+        new Chart(document.getElementById('conversion-trends-chart'), {
+            type: 'line',
+            data: {
+                labels: dateLabels,
+                datasets: [{
+                    label: 'Conversion Rate',
+                    data: conversionTrendData,
+                    borderColor: 'var(--chart-color-1)',
+                    backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: commonTimeScaleOptions
+        });
+
+        // Geo Chart
+        new Chart(document.getElementById('geo-chart'), {
+            type: 'bar',
+            data: {
+                labels: geoData.map(d => d.country),
+                datasets: [{
+                    label: 'Clicks',
+                    data: geoData.map(d => d.clicks),
+                    backgroundColor: 'rgba(15, 157, 88, 0.7)'
+                }]
+            },
+            options: { indexAxis: 'y', plugins: { legend: { display: false } } }
+        });
+        
+        // CC Desk Chart
+        new Chart(document.getElementById('cc-desk-chart'), {
+            type: 'bar',
+            data: {
+                labels: dateLabels,
+                datasets: [{
+                    type: 'bar',
+                    label: 'Daily Calls',
+                    data: dailyCallsData,
+                    backgroundColor: 'rgba(66, 133, 244, 0.7)',
+                    yAxisID: 'y'
+                }, {
+                    type: 'line',
+                    label: 'Avg. Response Time (s)',
+                    data: dailyResponseTimeData,
+                    borderColor: 'var(--chart-color-2)',
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                scales: {
+                    x: { type: 'time', time: { unit: 'week' } },
+                    y: { type: 'linear', position: 'left', title: { display: true, text: 'Calls Handled'} },
+                    y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Response Time (s)'} }
+                }
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

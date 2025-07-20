@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const cors = require('cors'); // Make sure this is imported at the top
+const cors = require('cors'); 
 require('dotenv').config();
 
 const authRoutes = require('./authRoutes');
@@ -14,26 +14,22 @@ const server = http.createServer(app);
 const PORT = 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// --- FIX IS HERE: APPLY CORS MIDDLEWARE TO EXPRESS ---
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? 'https://YOUR_APP_NAME.netlify.app' // Replace with your deployed frontend URL later
+    ? 'https://final-chatapp.netlify.app' // THIS LINE IS NOW UPDATED
     : 'http://localhost:5173',
 };
 app.use(cors(corsOptions));
-// ----------------------------------------------------
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 
-// This CORS config is for Socket.IO only
 const io = new Server(server, { cors: corsOptions });
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("✅ Database connected successfully"))
   .catch(err => console.error("Database connection error:", err));
 
-// Socket.IO Authentication Middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) {
