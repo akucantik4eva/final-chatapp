@@ -26,10 +26,6 @@ const Chat = ({ onLogout }) => {
     });
     setSocket(newSocket);
     
-    newSocket.on('connect', () => {
-      console.log('✅ Socket connected successfully!', newSocket.id);
-    });
-
     newSocket.on('load old messages', (oldMessages) => setMessages(oldMessages));
     newSocket.on('chat message', (data) => setMessages((prev) => [...prev, data]));
     newSocket.on('update user list', (users) => setOnlineUsers(users));
@@ -47,7 +43,7 @@ const Chat = ({ onLogout }) => {
   
   const handleJoinRoom = (e) => {
     e.preventDefault();
-    if (room.trim() && socket) { // Check if socket exists before using it
+    if (room.trim() && socket) {
         socket.emit('join room', room);
         setHasJoinedRoom(true);
     }
@@ -55,31 +51,16 @@ const Chat = ({ onLogout }) => {
 
   const handleInputChange = (e) => {
     setMessage(e.target.value);
-    if (socket) { // Check if socket exists
+    if (socket) {
       socket.emit('typing', { room });
     }
   };
 
-  // --- THIS IS THE FUNCTION WE ARE DEBUGGING ---
   const handleSendMessage = (e) => {
     e.preventDefault();
-    console.log("--- 1. 'Send' button clicked. ---");
-  
-    if (!socket) {
-      console.error("--- ERROR: Socket is not connected! Cannot send message. ---");
-      return;
-    }
-    console.log("--- 2. Socket connection is valid. ---");
-  
-    if (message.trim() && username) {
-      console.log("--- 3. Message and username are valid. Preparing to emit. ---");
-      const messageData = { text: message, room };
-      console.log("--- 4. Emitting 'chat message' with data: ---", messageData);
-      socket.emit('chat message', messageData);
+    if (message.trim() && socket) {
+      socket.emit('chat message', { text: message, room });
       setMessage('');
-      console.log("--- 5. Message emitted and input cleared. ---");
-    } else {
-      console.warn("--- WARNING: Did not send. Message or username is empty. ---");
     }
   };
 

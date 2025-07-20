@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 const { User } = require('./models');
 
 const router = express.Router();
-const JWT_SECRET = 'your-super-secret-key'; // Use a more complex key from a .env file in production
 
 // Register a new user
 router.post('/register', async (req, res) => {
@@ -28,7 +27,7 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).send({ error: 'Invalid credentials.' });
 
-    const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ userId: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.send({ token });
   } catch (error) {
     res.status(500).send({ error: 'Server error.' });

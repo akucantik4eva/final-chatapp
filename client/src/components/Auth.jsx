@@ -7,16 +7,12 @@ const Auth = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  // This line explicitly defines where your backend server is
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    // This creates the full, correct URL, e.g., http://localhost:3001/api/auth/login
     const url = `${API_BASE_URL}${isLogin ? '/api/auth/login' : '/api/auth/register'}`;
-    
     try {
       const res = await axios.post(url, { username, password });
       if (isLogin) {
@@ -27,7 +23,7 @@ const Auth = ({ onLoginSuccess }) => {
         setIsLogin(true);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'An error occurred. Make sure your backend server is running.');
+      setError(err.response?.data?.error || 'An error occurred.');
     }
   };
 
