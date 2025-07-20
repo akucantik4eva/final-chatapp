@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
-import { jwtDecode } from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode'; // CORRECTED IMPORT
 
 const Chat = ({ onLogout }) => {
   const token = localStorage.getItem('token');
-  const decodedToken = jwtDecode(token);
+  const decodedToken = jwtDecode(token); // CORRECTED FUNCTION CALL
   const username = decodedToken.username;
 
   const [socket, setSocket] = useState(null);
@@ -21,9 +21,7 @@ const Chat = ({ onLogout }) => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
-    const newSocket = io(API_URL, {
-      auth: { token }
-    });
+    const newSocket = io(API_URL, { auth: { token } });
     setSocket(newSocket);
     
     newSocket.on('load old messages', (oldMessages) => setMessages(oldMessages));
@@ -38,12 +36,12 @@ const Chat = ({ onLogout }) => {
     return () => newSocket.close();
   }, [token, API_URL]);
 
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView();
   useEffect(scrollToBottom, [messages]);
   
   const handleJoinRoom = (e) => {
     e.preventDefault();
-    if (room.trim() && socket) {
+    if (room.trim()) {
         socket.emit('join room', room);
         setHasJoinedRoom(true);
     }
@@ -51,14 +49,12 @@ const Chat = ({ onLogout }) => {
 
   const handleInputChange = (e) => {
     setMessage(e.target.value);
-    if (socket) {
-      socket.emit('typing', { room });
-    }
+    socket.emit('typing', { room });
   };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (message.trim() && socket) {
+    if (message.trim()) {
       socket.emit('chat message', { text: message, room });
       setMessage('');
     }
@@ -72,7 +68,7 @@ const Chat = ({ onLogout }) => {
             <p>Choose a room to join.</p>
             <input type="text" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="Enter room name" required />
             <button type="submit">Join Room</button>
-            <button onClick={onLogout} style={{background: '#6c757d', marginTop: '10px'}}>Logout</button>
+            <button onClick={onLogout} className="logout-btn" style={{background: 'transparent'}}>Logout</button>
           </form>
         </div>
       );
@@ -81,27 +77,35 @@ const Chat = ({ onLogout }) => {
   return (
     <div className="app-wrapper">
       <div className="users-panel">
-        <h2>Online ({onlineUsers.length})</h2>
+        <h2>Online Now ({onlineUsers.length})</h2>
         <ul>{onlineUsers.map((user, index) => <li key={index}>{user}</li>)}</ul>
-        <button onClick={onLogout} style={{background: '#6c757d', marginTop: 'auto'}}>Logout</button>
+        <button onClick={onLogout} className="logout-btn">Logout</button>
       </div>
+
       <div className="chat-container">
-        <div className="chat-header">Room: {room}</div>
-        <ul className="messages-list">
+        <header className="chat-header">
+          <span>Room: <strong>{room}</strong></span>
+          <span className="user-display">Logged in as {username}</span>
+        </header>
+
+        <main className="messages-list">
           {messages.map((msg) => (
-            <li key={msg._id} className={msg.user === username ? 'my-message' : 'other-message'}>
-              <strong>{msg.user === username ? 'Me' : msg.user}</strong>
+            <div key={msg._id} className={`message-bubble ${msg.user === username ? 'my-message' : 'other-message'}`}>
+              <span className="author">{msg.user === username ? 'Me' : msg.user}</span>
               <p>{msg.text}</p>
               <span className="timestamp">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-            </li>
+            </div>
           ))}
           <div ref={messagesEndRef} />
-        </ul>
-        <div className="typing-indicator">{typingUser && typingUser !== username && `${typingUser} is typing...`}</div>
-        <form className="chat-form" onSubmit={handleSendMessage}>
-          <input type="text" value={message} onChange={handleInputChange} placeholder="Type a message..." />
-          <button type="submit">Send</button>
-        </form>
+        </main>
+
+        <footer className="input-area">
+          <div className="typing-indicator">{typingUser && typingUser !== username && `${typingUser} is typing...`}</div>
+          <form className="input-form" onSubmit={handleSendMessage}>
+            <input type="text" value={message} onChange={handleInputChange} placeholder="Type a message..." autoComplete="off" />
+            <button type="submit">➤</button>
+          </form>
+        </footer>
       </div>
     </div>
   );
