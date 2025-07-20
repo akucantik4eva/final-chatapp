@@ -6,7 +6,6 @@ const Auth = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const handleSubmit = async (e) => {
@@ -28,15 +27,15 @@ const Auth = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="join-screen">
-      <form onSubmit={handleSubmit}>
-        <h1>{isLogin ? 'Login' : 'Register'}</h1>
-        {error && <p style={{ color: isLogin ? 'red' : 'green' }}>{error}</p>}
+    <div className="auth-container">
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <h1>{isLogin ? 'Welcome Back!' : 'Create Account'}</h1>
+        {error && <p style={{ color: isLogin ? 'red' : 'green', textAlign: 'center' }}>{error}</p>}
         <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
         <button type="submit">{isLogin ? 'Login' : 'Register'}</button>
         <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(!isLogin); setError(''); }}>
-          {isLogin ? 'Need an account? Register' : 'Have an account? Login'}
+          {isLogin ? "Don't have an account? Register" : 'Already have an account? Login'}
         </a>
       </form>
     </div>
