@@ -26,16 +26,13 @@ const Chat = ({ onLogout }) => {
     });
     setSocket(newSocket);
     
-    newSocket.on('load old messages', (oldMessages) => setMessages(oldMessages));
-    
-    newSocket.on('chat message', (data) => {
-      // --- DEBUGGING LINE ---
-      console.log('Received message from server:', data); 
-      setMessages((prev) => [...prev, data]);
+    newSocket.on('connect', () => {
+      console.log('✅ Socket connected successfully!', newSocket.id);
     });
-    
+
+    newSocket.on('load old messages', (oldMessages) => setMessages(oldMessages));
+    newSocket.on('chat message', (data) => setMessages((prev) => [...prev, data]));
     newSocket.on('update user list', (users) => setOnlineUsers(users));
-    
     newSocket.on('typing', (user) => {
       setTypingUser(user);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -49,23 +46,40 @@ const Chat = ({ onLogout }) => {
   useEffect(scrollToBottom, [messages]);
   
   const handleJoinRoom = (e) => {
-      e.preventDefault();
-      if (room.trim()) {
-          socket.emit('join room', room);
-          setHasJoinedRoom(true);
-      }
+    e.preventDefault();
+    if (room.trim() && socket) { // Check if socket exists before using it
+        socket.emit('join room', room);
+        setHasJoinedRoom(true);
+    }
   };
 
   const handleInputChange = (e) => {
     setMessage(e.target.value);
-    socket.emit('typing', { room });
+    if (socket) { // Check if socket exists
+      socket.emit('typing', { room });
+    }
   };
 
+  // --- THIS IS THE FUNCTION WE ARE DEBUGGING ---
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (message.trim()) {
-      socket.emit('chat message', { text: message, room });
+    console.log("--- 1. 'Send' button clicked. ---");
+  
+    if (!socket) {
+      console.error("--- ERROR: Socket is not connected! Cannot send message. ---");
+      return;
+    }
+    console.log("--- 2. Socket connection is valid. ---");
+  
+    if (message.trim() && username) {
+      console.log("--- 3. Message and username are valid. Preparing to emit. ---");
+      const messageData = { text: message, room };
+      console.log("--- 4. Emitting 'chat message' with data: ---", messageData);
+      socket.emit('chat message', messageData);
       setMessage('');
+      console.log("--- 5. Message emitted and input cleared. ---");
+    } else {
+      console.warn("--- WARNING: Did not send. Message or username is empty. ---");
     }
   };
 
